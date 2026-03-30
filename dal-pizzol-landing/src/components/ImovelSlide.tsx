@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import type { Imovel } from '../types/imovel'
 import { defaultOverlayCaption, getMosaicImages } from '../utils/gallery'
+import { formatPriceBRL } from '../utils/price'
 import styles from './ImovelSlide.module.css'
 
 export interface ImovelSlideProps {
@@ -42,7 +43,7 @@ export function ImovelSlide({ imovel }: ImovelSlideProps) {
           {imovel.specsLine2 ? <p className={styles.specs}>{imovel.specsLine2}</p> : null}
 
           <p className={styles.priceLabel}>{priceLabel}</p>
-          <p className={styles.price}>{imovel.price}</p>
+          <p className={styles.price}>{formatPriceBRL(imovel.price)}</p>
 
           <a className={styles.detailLink} href={imovel.link} target="_blank" rel="noopener noreferrer">
             Ver ficha completa

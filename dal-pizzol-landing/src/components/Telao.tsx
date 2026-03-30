@@ -6,6 +6,7 @@ import type { AddLocalImovelInput, LocalImovelSummary } from '../hooks/useLocalI
 import { AddImovelModal } from './AddImovelModal'
 import { ManageLocalImoveisModal } from './ManageLocalImoveisModal'
 import { getTelaoGradient, mapImoveisToTelao } from '../utils/telaoMap'
+import { formatPriceBRL } from '../utils/price'
 import { SITE_URL } from '../constants/site'
 import styles from './Telao.module.css'
 
@@ -419,7 +420,7 @@ function TelaoSlide({
           </div>
           <h2 className={styles.propTitle}>{prop.title || 'Imóvel disponível'}</h2>
           <div className={styles.propPrice}>
-            {prop.price || 'Consulte-nos'}
+            {formatPriceBRL(prop.price)}
             {prop.purpose === 'Aluguel' ? <small> /mês</small> : null}
           </div>
           <div className={styles.statsRow}>
