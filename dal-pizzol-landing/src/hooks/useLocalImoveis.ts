@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Imovel } from '../types/imovel'
-import {
-  idbDeleteLocalImovel,
-  idbListLocalImoveis,
-  idbPutLocalImovel,
-  type LocalImovelRecord,
-} from '../db/localImoveisDb'
+import type { LocalImovelRecord } from '../db/localImoveisDb'
+import { dbDeleteLocalImovel, dbListLocalImoveis, dbPutLocalImovel } from '../db/imoveisDb'
 
 export type LocalImovelSummary = { id: string; title: string }
 
@@ -57,7 +53,7 @@ export function useLocalImoveis() {
   const refresh = useCallback(async () => {
     revokeAll()
     try {
-      const rows = await idbListLocalImoveis()
+      const rows = await dbListLocalImoveis()
       setSummaries(rows.map((r) => ({ id: r.id, title: r.title })))
       const allUrls: string[] = []
       const imoveis: Imovel[] = rows.map((row) => {
@@ -141,7 +137,7 @@ export function useLocalImoveis() {
         imageBlobs,
       }
       try {
-        await idbPutLocalImovel(record)
+        await dbPutLocalImovel(record)
       } catch (e) {
         const name = e instanceof DOMException ? e.name : (e as Error)?.name
         if (name === 'QuotaExceededError') {
@@ -158,7 +154,7 @@ export function useLocalImoveis() {
 
   const deleteLocalImovel = useCallback(
     async (id: string) => {
-      await idbDeleteLocalImovel(id)
+      await dbDeleteLocalImovel(id)
       await refresh()
     },
     [refresh],

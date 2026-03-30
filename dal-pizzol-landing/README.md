@@ -1,5 +1,31 @@
 # React + TypeScript + Vite
 
+## Supabase (estrutura pronta)
+
+O projeto ja esta preparado para usar Supabase no cadastro de imoveis com fotos:
+
+1. Copie `.env.example` para `.env` e preencha:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+2. No Supabase, execute `supabase/schema.sql` no SQL Editor.
+3. Rode o projeto normalmente.
+
+Com as variaveis do Supabase configuradas, o app tenta salvar/listar/apagar no Supabase.
+Sem Supabase (ou em falha), ele faz fallback automatico para IndexedDB local.
+
+### Migracao de dados locais para Supabase
+
+Depois de configurar `.env` e subir o schema no Supabase, abra o app e rode no console:
+
+`migrateLocalImoveisToSupabase()`
+
+O helper migra os imoveis do IndexedDB para Supabase e ignora ids que ja existem.
+
+### RLS de producao
+
+Para ambiente real com login (`authenticated`), use `supabase/policies.production.sql`.
+Ele substitui as politicas de desenvolvimento por politicas por usuario (`owner_id`).
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
