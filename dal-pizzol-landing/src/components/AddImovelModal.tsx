@@ -30,7 +30,18 @@ export function AddImovelModal({ onClose, onSave }: Props) {
   const onFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files
     if (!list?.length) return
-    setFiles((prev) => [...prev, ...Array.from(list)])
+    const incoming = Array.from(list)
+    setFiles((prev) => {
+      const seen = new Set(prev.map((f) => `${f.name}-${f.size}-${f.lastModified}`))
+      const next = [...prev]
+      for (const file of incoming) {
+        const key = `${file.name}-${file.size}-${file.lastModified}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        next.push(file)
+      }
+      return next
+    })
     e.target.value = ''
   }
 
@@ -106,6 +117,7 @@ export function AddImovelModal({ onClose, onSave }: Props) {
             <label htmlFor={fileInputId} className={styles.fileBtn}>
               Escolher imagens…
             </label>
+            <p className={styles.hint}>Dica: selecione varias imagens de uma vez no explorador.</p>
             {files.length > 0 ? (
               <ul className={styles.fileList}>
                 {files.map((f, i) => (

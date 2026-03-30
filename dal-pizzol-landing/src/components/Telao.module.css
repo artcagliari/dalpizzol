@@ -322,31 +322,31 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: clamp(16px, 3vw, 36px);
+  gap: clamp(12px, 2vw, 24px);
   min-width: 0;
 }
 
 .detailInner {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 520px;
+  max-width: 620px;
 }
 
 .panelLogo {
-  flex-shrink: 0;
+  flex: 0 0 clamp(120px, 12vw, 220px);
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch;
+  align-self: center;
   padding: 8px 0 8px 12px;
 }
 
 .panelLogo img {
-  width: clamp(160px, 19vw, 300px);
-  max-height: min(52vh, 420px);
+  width: clamp(110px, 11vw, 190px);
+  max-height: min(40vh, 300px);
   height: auto;
   object-fit: contain;
   opacity: 0.95;
@@ -429,7 +429,7 @@
   font-size: 15px;
   font-weight: 400;
   line-height: 1.72;
-  max-width: 440px;
+  max-width: 560px;
   margin: 0 0 18px;
 }
 
@@ -809,6 +809,26 @@
 
 .navNext {
   right: 16px;
+}
+
+@media (max-width: 1280px) {
+  .imgPanel {
+    flex: 0 0 54%;
+  }
+
+  .detailInner {
+    max-width: 560px;
+  }
+
+  .panelLogo {
+    flex-basis: clamp(96px, 10vw, 150px);
+    padding-left: 8px;
+  }
+
+  .panelLogo img {
+    width: clamp(88px, 9vw, 140px);
+    max-height: min(30vh, 220px);
+  }
 }
 
 @media (max-width: 900px) {

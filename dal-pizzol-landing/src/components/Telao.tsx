@@ -93,12 +93,14 @@ export function Telao({
     }, PROG_STEP_MS)
 
     const photoTimer = window.setTimeout(() => {
-      setPhotoIdx((p) => {
-        const safeP = Math.min(p, nPhotos - 1)
-        if (safeP < nPhotos - 1) return safeP + 1
+      const safeP = Math.min(photoIdx, nPhotos - 1)
+      const isLastPhoto = safeP >= nPhotos - 1
+      if (isLastPhoto) {
         setCurrentIdx((i) => i + 1)
-        return 0
-      })
+        setPhotoIdx(0)
+        return
+      }
+      setPhotoIdx(safeP + 1)
     }, PHOTO_DWELL_MS)
 
     return () => {
@@ -133,11 +135,6 @@ export function Telao({
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [navSlide, showHelp, showAddImovelModal, showManageLocalModal])
-
-  const onWrapperClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('button, a, [data-stop-tap]')) return
-    setPaused((p) => !p)
-  }, [])
 
   const nPhotosActive = len > 0 ? Math.max(1, activeSlide?.photoUrls.length ?? 1) : 0
   const counterLine =
@@ -262,7 +259,7 @@ export function Telao({
             </div>
           </div>
 
-          <div className={styles.slidesWrapper} onClick={onWrapperClick} role="presentation">
+          <div className={styles.slidesWrapper} role="presentation">
             {len > 0 ? (
               <>
                 <button type="button" className={`${styles.navBtn} ${styles.navPrev}`} onClick={() => navSlide(-1)} aria-label="Anterior">
