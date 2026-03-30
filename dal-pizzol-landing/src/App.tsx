@@ -1,0 +1,30 @@
+import { useMemo } from 'react'
+import logoTransparent from './assets/Editedimage_1774739544734-removebg-preview.png'
+import { useImoveis } from './hooks/useImoveis'
+import { useLocalImoveis } from './hooks/useLocalImoveis'
+import { Telao } from './components/Telao'
+
+/**
+ * Telão: `public/imoveis.json` + imóveis criados no aparelho (IndexedDB).
+ */
+function App() {
+  const { imoveis, loadStatus } = useImoveis()
+  const { localImoveis, localSummaries, addLocalImovel, deleteLocalImovel } = useLocalImoveis()
+
+  const mergedImoveis = useMemo(() => [...imoveis, ...localImoveis], [imoveis, localImoveis])
+
+  return (
+    <Telao
+      imoveis={mergedImoveis}
+      loadStatus={loadStatus}
+      logoSrc={logoTransparent}
+      topbarLogoSrc={logoTransparent}
+      logoSemSrc={logoTransparent}
+      onAddLocalImovel={addLocalImovel}
+      onDeleteLocalImovel={deleteLocalImovel}
+      localSummaries={localSummaries}
+    />
+  )
+}
+
+export default App

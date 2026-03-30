@@ -1,0 +1,66 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.motionLayer {
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 12px 8px;
+}
+
+.dot,
+.dotActive {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: #cccccc;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.dot:hover {
+  background: #999999;
+}
+
+.dotActive {
+  background: #b8a15b;
+  transform: scale(1.25);
+}
+
+.dot:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 2px;
+}
+
+.empty {
+  margin: 0;
+  text-align: center;
+  color: #666666;
+  font-weight: 300;
+  padding: 2rem 1rem;
+}

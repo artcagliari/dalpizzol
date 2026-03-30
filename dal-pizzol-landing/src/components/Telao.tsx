@@ -1,0 +1,492 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Imovel } from '../types/imovel'
+import type { ImoveisLoadStatus } from '../hooks/useImoveis'
+import type { TelaoSlideModel } from '../types/telao'
+import type { AddLocalImovelInput, LocalImovelSummary } from '../hooks/useLocalImoveis'
+import { AddImovelModal } from './AddImovelModal'
+import { ManageLocalImoveisModal } from './ManageLocalImoveisModal'
+import { getTelaoGradient, mapImoveisToTelao } from '../utils/telaoMap'
+import { SITE_URL } from '../constants/site'
+import styles from './Telao.module.css'
+
+/** Tempo em cada foto antes de ir à próxima (ou ao próximo imóvel na última foto). */
+const PHOTO_DWELL_MS = 9_000
+const PROG_STEP_MS = 150
+
+export interface TelaoProps {
+  imoveis: Imovel[]
+  loadStatus: ImoveisLoadStatus
+  logoSrc?: string
+  topbarLogoSrc?: string
+  logoSemSrc?: string
+  onAddLocalImovel?: (data: AddLocalImovelInput) => Promise<void>
+  onDeleteLocalImovel?: (localId: string) => Promise<void>
+  localSummaries?: LocalImovelSummary[]
+}
+
+export function Telao({
+  imoveis,
+  loadStatus,
+  logoSrc,
+  topbarLogoSrc,
+  logoSemSrc,
+  onAddLocalImovel,
+  onDeleteLocalImovel,
+  localSummaries = [],
+}: TelaoProps) {
+  const topRightLogo = topbarLogoSrc ?? logoSrc
+  const loadingLogo = logoSrc ?? topbarLogoSrc
+  const slides = useMemo(() => mapImoveisToTelao(imoveis), [imoveis])
+  const len = slides.length
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const activeIndex = len > 0 ? ((currentIdx % len) + len) % len : 0
+
+  const [photoIdx, setPhotoIdx] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [progVal, setProgVal] = useState(0)
+  const [showLoading, setShowLoading] = useState(true)
+  const [showHelp, setShowHelp] = useState(false)
+  const [showAddImovelModal, setShowAddImovelModal] = useState(false)
+  const [showManageLocalModal, setShowManageLocalModal] = useState(false)
+  const [addImovelModalKey, setAddImovelModalKey] = useState(0)
+  const progRef = useRef(0)
+
+  const activeSlide = slides[activeIndex]
+
+  useEffect(() => {
+    if (loadStatus !== 'ready') return
+    const t = window.setTimeout(() => setShowLoading(false), 400)
+    return () => clearTimeout(t)
+  }, [loadStatus])
+
+  const navTo = useCallback(
+    (idx: number) => {
+      if (len === 0) return
+      const n = ((idx % len) + len) % len
+      setCurrentIdx(n)
+      setPhotoIdx(0)
+    },
+    [len],
+  )
+
+  const navSlide = useCallback((dir: number) => {
+    setCurrentIdx((i) => i + dir)
+    setPhotoIdx(0)
+  }, [])
+
+  /** Avanço automático: preenche a barra em PHOTO_DWELL_MS; depois próxima foto ou próximo imóvel. */
+  useEffect(() => {
+    if (len === 0 || paused || showLoading) return
+    const slide = slides[activeIndex]
+    const nPhotos = Math.max(1, slide?.photoUrls.length ?? 1)
+
+    let raf = 0
+    raf = window.requestAnimationFrame(() => {
+      progRef.current = 0
+      setProgVal(0)
+    })
+
+    const inc = 100 / (PHOTO_DWELL_MS / PROG_STEP_MS)
+    const progTimer = window.setInterval(() => {
+      progRef.current = Math.min(progRef.current + inc, 100)
+      setProgVal(progRef.current)
+    }, PROG_STEP_MS)
+
+    const photoTimer = window.setTimeout(() => {
+      setPhotoIdx((p) => {
+        const safeP = Math.min(p, nPhotos - 1)
+        if (safeP < nPhotos - 1) return safeP + 1
+        setCurrentIdx((i) => i + 1)
+        return 0
+      })
+    }, PHOTO_DWELL_MS)
+
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.clearInterval(progTimer)
+      window.clearTimeout(photoTimer)
+    }
+  }, [activeIndex, photoIdx, len, paused, showLoading, slides])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (showHelp || showAddImovelModal || showManageLocalModal) {
+        if (e.key === 'Escape') {
+          setShowHelp(false)
+          setShowAddImovelModal(false)
+          setShowManageLocalModal(false)
+        }
+        return
+      }
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault()
+        setShowHelp((v) => !v)
+        return
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navSlide(1)
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navSlide(-1)
+      if (e.key === ' ') {
+        e.preventDefault()
+        setPaused((p) => !p)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [navSlide, showHelp, showAddImovelModal, showManageLocalModal])
+
+  const onWrapperClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button, a, [data-stop-tap]')) return
+    setPaused((p) => !p)
+  }, [])
+
+  const nPhotosActive = len > 0 ? Math.max(1, activeSlide?.photoUrls.length ?? 1) : 0
+  const counterLine =
+    len === 0
+      ? 'Nenhum imóvel na lista'
+      : nPhotosActive > 1
+        ? `Foto ${photoIdx + 1}/${nPhotosActive} · Imóvel ${activeIndex + 1}/${slides.length}`
+        : `Imóvel ${activeIndex + 1} / ${slides.length}`
+
+  return (
+    <div className={styles.app}>
+      {showHelp ? (
+        <div
+          className={styles.helpBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="help-title"
+          onClick={() => setShowHelp(false)}
+        >
+          <div className={styles.helpPanel} onClick={(e) => e.stopPropagation()} data-stop-tap>
+            <h2 id="help-title" className={styles.helpTitle}>
+              Dados no JSON e telão
+            </h2>
+            <p className={styles.helpLead}>
+              Use <strong>Novo imóvel</strong> para cadastro com upload neste aparelho (IndexedDB), ou edite{' '}
+              <strong>public/imoveis.json</strong> para listar imóveis com URLs de imagem para todos.
+            </p>
+            <ul className={styles.helpList}>
+              <li>
+                <strong>Novo imóvel</strong> — fotos e ficha salvos localmente no aparelho.
+              </li>
+              <li>
+                <code>img</code> — foto principal.
+              </li>
+              <li>
+                <code>images</code> — mais fotos no arquivo JSON.
+              </li>
+              <li>
+                <code>description</code> — texto no painel.
+              </li>
+              <li>
+                <code>features</code> — tags de destaque.
+              </li>
+            </ul>
+            <pre className={styles.helpPre}>{`{
+  "title": "Borgo",
+  "img": "https://.../1.jpg",
+  "images": ["https://.../2.jpg", "https://.../3.jpg"],
+  "description": "…",
+  "link": "https://www.dalpizzolimoveis.com.br/..."
+}`}</pre>
+            <p className={styles.helpHint}>
+              Atalho: <kbd>?</kbd> · <kbd>Esc</kbd> fecha.
+            </p>
+            <button type="button" className={styles.helpClose} onClick={() => setShowHelp(false)}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showAddImovelModal && onAddLocalImovel ? (
+        <AddImovelModal
+          key={addImovelModalKey}
+          onClose={() => setShowAddImovelModal(false)}
+          onSave={onAddLocalImovel}
+        />
+      ) : null}
+
+      {showManageLocalModal && onDeleteLocalImovel ? (
+        <ManageLocalImoveisModal
+          summaries={localSummaries}
+          onClose={() => setShowManageLocalModal(false)}
+          onDelete={onDeleteLocalImovel}
+        />
+      ) : null}
+
+      <div
+        className={`${styles.loading} ${!showLoading ? styles.loadingHidden : ''}`}
+        aria-busy={showLoading}
+        aria-hidden={!showLoading}
+      >
+        {loadingLogo ? (
+          <img className={styles.loadLogoImg} src={loadingLogo} alt="" />
+        ) : (
+          <div className={styles.loadLogo}>Dalpizzol</div>
+        )}
+        <div className={styles.loadSub}>Negócios Imobiliários</div>
+        <div className={styles.loadDivider} />
+        <div className={styles.loadSpinner} />
+        <div className={styles.loadMsg}>
+          {loadStatus === 'loading' ? 'Buscando imóveis disponíveis…' : 'Preparando apresentação…'}
+        </div>
+      </div>
+
+      {!showLoading && loadStatus === 'ready' && (
+        <>
+          <div className={styles.topbar}>
+            <div className={styles.brandRow}>
+              <div>
+                <div className={styles.logoMark}>Dalpizzol</div>
+                <div className={styles.logoSub}>Negócios Imobiliários · Bento Gonçalves · Garibaldi</div>
+              </div>
+            </div>
+            <div className={styles.topRight}>
+              {topRightLogo ? (
+                <a
+                  className={styles.topbarLogoLink}
+                  href={SITE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Dal Pizzol — abrir site"
+                >
+                  <img
+                    className={styles.topbarLogoFull}
+                    src={topRightLogo}
+                    alt="Dal Pizzol Negócios Imobiliários"
+                  />
+                </a>
+              ) : null}
+              <div className={styles.counter}>{counterLine}</div>
+            </div>
+          </div>
+
+          <div className={styles.slidesWrapper} onClick={onWrapperClick} role="presentation">
+            {len > 0 ? (
+              <>
+                <button type="button" className={`${styles.navBtn} ${styles.navPrev}`} onClick={() => navSlide(-1)} aria-label="Anterior">
+                  ‹
+                </button>
+                <button type="button" className={`${styles.navBtn} ${styles.navNext}`} onClick={() => navSlide(1)} aria-label="Próximo">
+                  ›
+                </button>
+
+                {slides.map((prop, i) => (
+                  <TelaoSlide
+                    key={prop.id}
+                    prop={prop}
+                    active={i === activeIndex}
+                    logoSemSrc={logoSemSrc}
+                    photoIndex={i === activeIndex ? photoIdx : 0}
+                    onPhotoSelect={i === activeIndex ? setPhotoIdx : undefined}
+                  />
+                ))}
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                <p className={styles.emptyTitle}>Lista vazia</p>
+                <p className={styles.emptyMsg}>
+                  Use <strong>Novo imóvel</strong> para enviar fotos e dados (guardados neste aparelho) ou edite{' '}
+                  <code>public/imoveis.json</code> com URLs de imagem.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.bottombar}>
+            {onAddLocalImovel ? (
+              <button
+                type="button"
+                className={styles.newImovelBtn}
+                onClick={() => {
+                  setAddImovelModalKey((k) => k + 1)
+                  setShowAddImovelModal(true)
+                }}
+                data-stop-tap
+              >
+                Novo imóvel
+              </button>
+            ) : null}
+            {onDeleteLocalImovel ? (
+              <button
+                type="button"
+                className={styles.manageLocalBtn}
+                onClick={() => setShowManageLocalModal(true)}
+                data-stop-tap
+              >
+                Imóveis locais
+              </button>
+            ) : null}
+            {activeSlide?.localDbId && onDeleteLocalImovel ? (
+              <button
+                type="button"
+                className={styles.deleteLocalBtn}
+                onClick={async () => {
+                  if (!activeSlide.localDbId) return
+                  if (!window.confirm(`Apagar “${activeSlide.title}” deste dispositivo?`)) return
+                  await onDeleteLocalImovel(activeSlide.localDbId)
+                }}
+                data-stop-tap
+              >
+                Apagar atual
+              </button>
+            ) : null}
+            <button type="button" className={styles.editDataBtn} onClick={() => setShowHelp(true)} data-stop-tap>
+              Ajuda JSON
+            </button>
+            <div className={styles.dots}>
+              {slides.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`${styles.dot} ${i === activeIndex ? styles.dotActive : ''}`}
+                  aria-label={`Imóvel ${i + 1}`}
+                  aria-current={i === activeIndex}
+                  onClick={() => navTo(i)}
+                />
+              ))}
+            </div>
+            <div className={styles.progressTrack}>
+              <div className={styles.progressFill} style={{ width: `${progVal}%` }} />
+            </div>
+            <div className={styles.siteUrl}>
+              <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
+                www.dalpizzolimoveis.com.br
+              </a>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function TelaoSlide({
+  prop,
+  active,
+  logoSemSrc,
+  photoIndex,
+  onPhotoSelect,
+}: {
+  prop: TelaoSlideModel
+  active: boolean
+  logoSemSrc?: string
+  photoIndex: number
+  onPhotoSelect?: (index: number) => void
+}) {
+  const n = Math.max(1, prop.photoUrls.length)
+  const safeIdx = ((photoIndex % n) + n) % n
+  const url = prop.photoUrls[safeIdx] ?? prop.photoUrls[0]
+  const bgStyle = url
+    ? { backgroundImage: `url('${url}')` }
+    : { background: getTelaoGradient(prop.type) }
+
+  const typeLeft = prop.purpose ? 130 : 36
+  const multiPhotos = prop.photoUrls.length > 1
+
+  return (
+    <div className={`${styles.slide} ${active ? styles.slideActive : ''}`} aria-hidden={!active}>
+      <div className={styles.imgPanel}>
+        <div className={styles.imgBg} style={bgStyle} />
+        <div className={styles.imgOverlayR} />
+        <div className={styles.imgOverlayB} />
+        {prop.purpose ? <div className={styles.purposeBadge}>{prop.purpose.toUpperCase()}</div> : null}
+        <div className={styles.typeBadge} style={{ left: typeLeft }}>
+          {prop.type.toUpperCase()}
+        </div>
+        {multiPhotos ? (
+          <div className={styles.imgFilmstrip} data-stop-tap onClick={(e) => e.stopPropagation()}>
+            {prop.photoUrls.map((u, i) => (
+              <button
+                key={`${u}-${i}`}
+                type="button"
+                className={`${styles.filmThumb} ${i === safeIdx ? styles.filmThumbActive : ''}`}
+                onClick={() => onPhotoSelect?.(i)}
+                aria-label={`Foto ${i + 1} de ${prop.photoUrls.length}`}
+                aria-current={i === safeIdx}
+              >
+                <img src={u} alt="" loading="lazy" decoding="async" />
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div className={styles.detailPanel}>
+        <div className={styles.detailInner}>
+          <div className={styles.propCity}>
+            <span className={styles.pin} aria-hidden>
+              ●
+            </span>{' '}
+            {prop.location || 'Bento Gonçalves · RS'}
+          </div>
+          <h2 className={styles.propTitle}>{prop.title || 'Imóvel disponível'}</h2>
+          <div className={styles.propPrice}>
+            {prop.price || 'Consulte-nos'}
+            {prop.purpose === 'Aluguel' ? <small> /mês</small> : null}
+          </div>
+          <div className={styles.statsRow}>
+            {prop.area ? (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Área</span>
+                <span className={styles.statValue}>{prop.area}</span>
+              </div>
+            ) : null}
+            {prop.bedrooms > 0 ? (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Quartos</span>
+                <span className={styles.statValue}>{prop.bedrooms}</span>
+              </div>
+            ) : null}
+            {prop.bathrooms > 0 ? (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Banheiros</span>
+                <span className={styles.statValue}>{prop.bathrooms}</span>
+              </div>
+            ) : null}
+            {prop.parking > 0 ? (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Vagas</span>
+                <span className={styles.statValue}>{prop.parking}</span>
+              </div>
+            ) : null}
+            {prop.suites > 0 ? (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Suítes</span>
+                <span className={styles.statValue}>{prop.suites}</span>
+              </div>
+            ) : null}
+          </div>
+          {prop.description ? <p className={styles.propDesc}>{prop.description}</p> : null}
+          {multiPhotos ? (
+            <p className={styles.photoHint} data-stop-tap>
+              {prop.photoUrls.length} fotos — ~{PHOTO_DWELL_MS / 1000}s em cada; em seguida passa ao próximo imóvel. Clique nas
+              miniaturas para pular.
+            </p>
+          ) : null}
+          {prop.features.length > 0 ? (
+            <div className={styles.features}>
+              {prop.features.slice(0, 8).map((f) => (
+                <span key={f} className={styles.featureTag}>
+                  {f}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {prop.link.startsWith('local://') ? (
+            <span className={styles.propLinkLocal}>Cadastro só neste dispositivo — sem página web</span>
+          ) : (
+            <a className={styles.propLink} href={prop.link} target="_blank" rel="noopener noreferrer" data-stop-tap>
+              Ver página do imóvel →
+            </a>
+          )}
+        </div>
+        {logoSemSrc ? (
+          <div className={styles.panelLogo} aria-hidden>
+            <img src={logoSemSrc} alt="" />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
