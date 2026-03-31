@@ -171,21 +171,14 @@ export function AddImovelModal({ onClose, onSave }: Props) {
           <div className={styles.grid2}>
             <label className={styles.field}>
               <span className={styles.label}>Tipo</span>
-              <input
-                className={styles.input}
+              <select
+                className={styles.select}
                 value={propertyType}
                 onChange={(e) => setPropertyType(e.target.value)}
-                list={`${formId}-types`}
-              />
-              <datalist id={`${formId}-types`}>
-                <option value="Apartamento" />
+              >
                 <option value="Casa" />
-                <option value="Sobrado" />
-                <option value="Terreno" />
-                <option value="Cobertura" />
-                <option value="Sala Comercial" />
-                <option value="Galpão" />
-              </datalist>
+                <option value="Apartamento">Apartamento</option>
+              </select>
             </label>
             <label className={styles.field}>
               <span className={styles.label}>Finalidade</span>
