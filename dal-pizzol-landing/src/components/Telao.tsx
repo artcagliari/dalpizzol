@@ -181,7 +181,9 @@ export function Telao({
               <div>
                 <div className={styles.logoMark}>Dalpizzol</div>
                 <div className={styles.logoSub}>
-                  Negócios Imobiliários · Bento Gonçalves · Garibaldi · Carlos Barbosa · Farroupilha
+                  Negócios Imobiliários · Bento Gonçalves · Garibaldi
+                  <br />
+                  Carlos Barbosa · Farroupilha
                 </div>
               </div>
             </div>
