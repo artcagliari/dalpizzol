@@ -1,0 +1,12 @@
+{
+  "framework": "vite",
+  "installCommand": "cd dal-pizzol-landing && npm install",
+  "buildCommand": "cd dal-pizzol-landing && npm run build",
+  "outputDirectory": "dal-pizzol-landing/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
