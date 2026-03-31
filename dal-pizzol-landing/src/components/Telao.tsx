@@ -11,7 +11,7 @@ import { SITE_URL } from '../constants/site'
 import styles from './Telao.module.css'
 
 /** Tempo em cada foto antes de ir à próxima (ou ao próximo imóvel na última foto). */
-const PHOTO_DWELL_MS = 9_000
+const PHOTO_DWELL_MS = 4_000
 const PROG_STEP_MS = 150
 
 export interface TelaoProps {
