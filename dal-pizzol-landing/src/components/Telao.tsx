@@ -46,7 +46,6 @@ export function Telao({
   const [paused, setPaused] = useState(false)
   const [progVal, setProgVal] = useState(0)
   const [showLoading, setShowLoading] = useState(true)
-  const [showHelp, setShowHelp] = useState(false)
   const [showAddImovelModal, setShowAddImovelModal] = useState(false)
   const [showManageLocalModal, setShowManageLocalModal] = useState(false)
   const [addImovelModalKey, setAddImovelModalKey] = useState(0)
@@ -113,17 +112,11 @@ export function Telao({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showHelp || showAddImovelModal || showManageLocalModal) {
+      if (showAddImovelModal || showManageLocalModal) {
         if (e.key === 'Escape') {
-          setShowHelp(false)
           setShowAddImovelModal(false)
           setShowManageLocalModal(false)
         }
-        return
-      }
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
-        e.preventDefault()
-        setShowHelp((v) => !v)
         return
       }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navSlide(1)
@@ -135,7 +128,7 @@ export function Telao({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [navSlide, showHelp, showAddImovelModal, showManageLocalModal])
+  }, [navSlide, showAddImovelModal, showManageLocalModal])
 
   const nPhotosActive = len > 0 ? Math.max(1, activeSlide?.photoUrls.length ?? 1) : 0
   const counterLine =
@@ -147,56 +140,6 @@ export function Telao({
 
   return (
     <div className={styles.app}>
-      {showHelp ? (
-        <div
-          className={styles.helpBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="help-title"
-          onClick={() => setShowHelp(false)}
-        >
-          <div className={styles.helpPanel} onClick={(e) => e.stopPropagation()} data-stop-tap>
-            <h2 id="help-title" className={styles.helpTitle}>
-              Dados no JSON e telão
-            </h2>
-            <p className={styles.helpLead}>
-              Use <strong>Novo imóvel</strong> para cadastro com upload neste aparelho (IndexedDB), ou edite{' '}
-              <strong>public/imoveis.json</strong> para listar imóveis com URLs de imagem para todos.
-            </p>
-            <ul className={styles.helpList}>
-              <li>
-                <strong>Novo imóvel</strong> — fotos e ficha salvos localmente no aparelho.
-              </li>
-              <li>
-                <code>img</code> — foto principal.
-              </li>
-              <li>
-                <code>images</code> — mais fotos no arquivo JSON.
-              </li>
-              <li>
-                <code>description</code> — texto no painel.
-              </li>
-              <li>
-                <code>features</code> — tags de destaque.
-              </li>
-            </ul>
-            <pre className={styles.helpPre}>{`{
-  "title": "Borgo",
-  "img": "https://.../1.jpg",
-  "images": ["https://.../2.jpg", "https://.../3.jpg"],
-  "description": "…",
-  "link": "https://www.dalpizzolimoveis.com.br/..."
-}`}</pre>
-            <p className={styles.helpHint}>
-              Atalho: <kbd>?</kbd> · <kbd>Esc</kbd> fecha.
-            </p>
-            <button type="button" className={styles.helpClose} onClick={() => setShowHelp(false)}>
-              Fechar
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {showAddImovelModal && onAddLocalImovel ? (
         <AddImovelModal
           key={addImovelModalKey}
@@ -330,9 +273,6 @@ export function Telao({
                 Apagar atual
               </button>
             ) : null}
-            <button type="button" className={styles.editDataBtn} onClick={() => setShowHelp(true)} data-stop-tap>
-              Ajuda JSON
-            </button>
             <div className={styles.dots}>
               {slides.map((s, i) => (
                 <button
@@ -380,7 +320,6 @@ function TelaoSlide({
     ? { backgroundImage: `url('${url}')` }
     : { background: getTelaoGradient(prop.type) }
 
-  const typeLeft = prop.purpose ? 130 : 36
   const multiPhotos = prop.photoUrls.length > 1
 
   return (
@@ -389,10 +328,6 @@ function TelaoSlide({
         <div className={styles.imgBg} style={bgStyle} />
         <div className={styles.imgOverlayR} />
         <div className={styles.imgOverlayB} />
-        {prop.purpose ? <div className={styles.purposeBadge}>{prop.purpose.toUpperCase()}</div> : null}
-        <div className={styles.typeBadge} style={{ left: typeLeft }}>
-          {prop.type.toUpperCase()}
-        </div>
         {multiPhotos ? (
           <div className={styles.imgFilmstrip} data-stop-tap onClick={(e) => e.stopPropagation()}>
             {prop.photoUrls.map((u, i) => (
@@ -471,6 +406,10 @@ function TelaoSlide({
               ))}
             </div>
           ) : null}
+          <div className={styles.badgesRowRight}>
+            {prop.purpose ? <span className={styles.purposeBadge}>{prop.purpose.toUpperCase()}</span> : null}
+            <span className={styles.typeBadge}>{prop.type.toUpperCase()}</span>
+          </div>
           {prop.link.startsWith('local://') ? (
             <span className={styles.propLinkLocal}>Cadastro só neste dispositivo — sem página web</span>
           ) : (
