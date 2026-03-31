@@ -180,7 +180,9 @@ export function Telao({
             <div className={styles.brandRow}>
               <div>
                 <div className={styles.logoMark}>Dalpizzol</div>
-                <div className={styles.logoSub}>Negócios Imobiliários · Bento Gonçalves · Garibaldi</div>
+                <div className={styles.logoSub}>
+                  Negócios Imobiliários · Bento Gonçalves · Garibaldi · Carlos Barbosa · Farroupilha
+                </div>
               </div>
             </div>
             <div className={styles.topRight}>
