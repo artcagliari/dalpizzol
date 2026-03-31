@@ -176,7 +176,7 @@ export function AddImovelModal({ onClose, onSave }: Props) {
                 value={propertyType}
                 onChange={(e) => setPropertyType(e.target.value)}
               >
-                <option value="Casa" />
+                <option value="Casa">Casa</option>
                 <option value="Apartamento">Apartamento</option>
               </select>
             </label>
