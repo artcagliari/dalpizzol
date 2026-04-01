@@ -292,3 +292,9 @@
 .manageDelete:hover {
   background: rgba(201, 100, 90, 0.12);
 }
+
+.manageActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

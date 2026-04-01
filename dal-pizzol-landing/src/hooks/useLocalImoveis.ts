@@ -4,6 +4,21 @@ import type { LocalImovelRecord } from '../db/localImoveisDb'
 import { dbDeleteLocalImovel, dbListLocalImoveis, dbPutLocalImovel } from '../db/imoveisDb'
 
 export type LocalImovelSummary = { id: string; title: string }
+export type LocalImovelFormData = {
+  title: string
+  price: string
+  location: string
+  description: string
+  propertyType: string
+  listingKind: 'aluguel' | 'venda'
+  area: string
+  bedrooms: string
+  bathrooms: string
+  parking: string
+  suites: string
+  featuresText: string
+  pageLink: string
+}
 
 function parseOptionalInt(s: string): number | undefined {
   const t = s.trim()
@@ -44,6 +59,7 @@ export function useLocalImoveis() {
   const [localImoveis, setLocalImoveis] = useState<Imovel[]>([])
   const [summaries, setSummaries] = useState<LocalImovelSummary[]>([])
   const urlsRef = useRef<string[]>([])
+  const rowsRef = useRef<LocalImovelRecord[]>([])
 
   const revokeAll = useCallback(() => {
     for (const u of urlsRef.current) URL.revokeObjectURL(u)
@@ -54,6 +70,7 @@ export function useLocalImoveis() {
     revokeAll()
     try {
       const rows = await dbListLocalImoveis()
+      rowsRef.current = rows
       setSummaries(rows.map((r) => ({ id: r.id, title: r.title })))
       const allUrls: string[] = []
       const imoveis: Imovel[] = rows.map((row) => {
@@ -88,6 +105,7 @@ export function useLocalImoveis() {
       urlsRef.current = allUrls
       setLocalImoveis(imoveis)
     } catch {
+      rowsRef.current = []
       setSummaries([])
       setLocalImoveis([])
     }
@@ -152,6 +170,80 @@ export function useLocalImoveis() {
     [refresh],
   )
 
+  const getLocalImovelForEdit = useCallback(
+    async (id: string): Promise<LocalImovelFormData> => {
+      let row = rowsRef.current.find((x) => x.id === id)
+      if (!row) {
+        const rows = await dbListLocalImoveis()
+        rowsRef.current = rows
+        row = rows.find((x) => x.id === id)
+      }
+      if (!row) throw new Error('Imóvel não encontrado para edição.')
+      return {
+        title: row.title,
+        price: row.price,
+        location: row.location,
+        description: row.description ?? '',
+        propertyType: row.propertyType ?? 'Apartamento',
+        listingKind: row.listingKind ?? 'venda',
+        area: row.area ?? '',
+        bedrooms: row.bedrooms?.toString() ?? '',
+        bathrooms: row.bathrooms?.toString() ?? '',
+        parking: row.parking?.toString() ?? '',
+        suites: row.suites?.toString() ?? '',
+        featuresText: row.features?.join(', ') ?? '',
+        pageLink: row.pageLink ?? '',
+      }
+    },
+    [],
+  )
+
+  const updateLocalImovel = useCallback(
+    async (id: string, input: AddLocalImovelInput) => {
+      let current = rowsRef.current.find((x) => x.id === id)
+      if (!current) {
+        const rows = await dbListLocalImoveis()
+        rowsRef.current = rows
+        current = rows.find((x) => x.id === id)
+      }
+      if (!current) throw new Error('Imóvel não encontrado para edição.')
+
+      const imageBlobs =
+        input.files.length > 0
+          ? await Promise.all(
+              input.files.map(async (file) => {
+                const ab = await file.arrayBuffer()
+                return new Blob([ab], { type: file.type || 'image/jpeg' })
+              }),
+            )
+          : current.imageBlobs
+
+      const listingKind = input.listingKind
+      const record: LocalImovelRecord = {
+        ...current,
+        title: input.title.trim(),
+        price: input.price.trim(),
+        location: input.location.trim(),
+        description: input.description.trim() || undefined,
+        propertyType: input.propertyType.trim() || undefined,
+        listingKind,
+        priceLabel: listingKind === 'aluguel' ? 'Aluguel' : 'Venda',
+        area: input.area.trim() || undefined,
+        bedrooms: parseOptionalInt(input.bedrooms),
+        bathrooms: parseOptionalInt(input.bathrooms),
+        parking: parseOptionalInt(input.parking),
+        suites: parseOptionalInt(input.suites),
+        features: parseFeatures(input.featuresText),
+        pageLink: input.pageLink.trim() || undefined,
+        imageBlobs,
+      }
+
+      await dbPutLocalImovel(record)
+      await refresh()
+    },
+    [refresh],
+  )
+
   const deleteLocalImovel = useCallback(
     async (id: string) => {
       await dbDeleteLocalImovel(id)
@@ -164,6 +256,8 @@ export function useLocalImoveis() {
     localImoveis,
     localSummaries: summaries,
     addLocalImovel,
+    getLocalImovelForEdit,
+    updateLocalImovel,
     deleteLocalImovel,
     refreshLocalImoveis: refresh,
   }

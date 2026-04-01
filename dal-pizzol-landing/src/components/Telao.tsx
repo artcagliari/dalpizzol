@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Imovel } from '../types/imovel'
 import type { ImoveisLoadStatus } from '../hooks/useImoveis'
 import type { TelaoSlideModel } from '../types/telao'
-import type { AddLocalImovelInput, LocalImovelSummary } from '../hooks/useLocalImoveis'
+import type { AddLocalImovelInput, LocalImovelFormData, LocalImovelSummary } from '../hooks/useLocalImoveis'
 import { AddImovelModal } from './AddImovelModal'
 import { ManageLocalImoveisModal } from './ManageLocalImoveisModal'
 import { getTelaoGradient, mapImoveisToTelao } from '../utils/telaoMap'
@@ -21,6 +21,8 @@ export interface TelaoProps {
   topbarLogoSrc?: string
   logoSemSrc?: string
   onAddLocalImovel?: (data: AddLocalImovelInput) => Promise<void>
+  onUpdateLocalImovel?: (id: string, data: AddLocalImovelInput) => Promise<void>
+  onGetLocalImovelForEdit?: (id: string) => Promise<LocalImovelFormData>
   onDeleteLocalImovel?: (localId: string) => Promise<void>
   localSummaries?: LocalImovelSummary[]
 }
@@ -32,6 +34,8 @@ export function Telao({
   topbarLogoSrc,
   logoSemSrc,
   onAddLocalImovel,
+  onUpdateLocalImovel,
+  onGetLocalImovelForEdit,
   onDeleteLocalImovel,
   localSummaries = [],
 }: TelaoProps) {
@@ -49,6 +53,10 @@ export function Telao({
   const [showAddImovelModal, setShowAddImovelModal] = useState(false)
   const [showManageLocalModal, setShowManageLocalModal] = useState(false)
   const [addImovelModalKey, setAddImovelModalKey] = useState(0)
+  const [showEditImovelModal, setShowEditImovelModal] = useState(false)
+  const [editingLocalId, setEditingLocalId] = useState<string | null>(null)
+  const [editingInitialData, setEditingInitialData] = useState<LocalImovelFormData | null>(null)
+  const [editImovelModalKey, setEditImovelModalKey] = useState(0)
   const progRef = useRef(0)
 
   const activeSlide = slides[activeIndex]
@@ -112,10 +120,11 @@ export function Telao({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showAddImovelModal || showManageLocalModal) {
+      if (showAddImovelModal || showManageLocalModal || showEditImovelModal) {
         if (e.key === 'Escape') {
           setShowAddImovelModal(false)
           setShowManageLocalModal(false)
+          setShowEditImovelModal(false)
         }
         return
       }
@@ -128,7 +137,7 @@ export function Telao({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [navSlide, showAddImovelModal, showManageLocalModal])
+  }, [navSlide, showAddImovelModal, showManageLocalModal, showEditImovelModal])
 
   const nPhotosActive = len > 0 ? Math.max(1, activeSlide?.photoUrls.length ?? 1) : 0
   const counterLine =
@@ -153,6 +162,34 @@ export function Telao({
           summaries={localSummaries}
           onClose={() => setShowManageLocalModal(false)}
           onDelete={onDeleteLocalImovel}
+          onEdit={async (id) => {
+            if (!onGetLocalImovelForEdit) return
+            const data = await onGetLocalImovelForEdit(id)
+            setEditingLocalId(id)
+            setEditingInitialData(data)
+            setEditImovelModalKey((k) => k + 1)
+            setShowManageLocalModal(false)
+            setShowEditImovelModal(true)
+          }}
+        />
+      ) : null}
+
+      {showEditImovelModal && onUpdateLocalImovel && editingLocalId && editingInitialData ? (
+        <AddImovelModal
+          key={editImovelModalKey}
+          mode="edit"
+          initialData={editingInitialData}
+          onClose={() => {
+            setShowEditImovelModal(false)
+            setEditingLocalId(null)
+            setEditingInitialData(null)
+          }}
+          onSave={async (data) => {
+            await onUpdateLocalImovel(editingLocalId, data)
+            setShowEditImovelModal(false)
+            setEditingLocalId(null)
+            setEditingInitialData(null)
+          }}
         />
       ) : null}
 

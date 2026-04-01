@@ -9,7 +9,8 @@ import { Telao } from './components/Telao'
  */
 function App() {
   const { imoveis, loadStatus } = useImoveis()
-  const { localImoveis, localSummaries, addLocalImovel, deleteLocalImovel } = useLocalImoveis()
+  const { localImoveis, localSummaries, addLocalImovel, updateLocalImovel, getLocalImovelForEdit, deleteLocalImovel } =
+    useLocalImoveis()
 
   const mergedImoveis = useMemo(() => [...imoveis, ...localImoveis], [imoveis, localImoveis])
 
@@ -21,6 +22,8 @@ function App() {
       topbarLogoSrc={logoTransparent}
       logoSemSrc={logoTransparent}
       onAddLocalImovel={addLocalImovel}
+      onUpdateLocalImovel={updateLocalImovel}
+      onGetLocalImovelForEdit={getLocalImovelForEdit}
       onDeleteLocalImovel={deleteLocalImovel}
       localSummaries={localSummaries}
     />

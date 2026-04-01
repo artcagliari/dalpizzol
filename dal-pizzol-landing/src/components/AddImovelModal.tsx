@@ -1,28 +1,32 @@
 import { useId, useState } from 'react'
 import type { AddLocalImovelInput } from '../hooks/useLocalImoveis'
+import type { LocalImovelFormData } from '../hooks/useLocalImoveis'
 import styles from './AddImovelModal.module.css'
 
 type Props = {
   onClose: () => void
   onSave: (data: AddLocalImovelInput) => Promise<void>
+  initialData?: LocalImovelFormData
+  mode?: 'create' | 'edit'
 }
 
-export function AddImovelModal({ onClose, onSave }: Props) {
+export function AddImovelModal({ onClose, onSave, initialData, mode = 'create' }: Props) {
+  const isEdit = mode === 'edit'
   const formId = useId()
   const fileInputId = `${formId}-file-photos`
-  const [title, setTitle] = useState('')
-  const [price, setPrice] = useState('')
-  const [location, setLocation] = useState('')
-  const [description, setDescription] = useState('')
-  const [propertyType, setPropertyType] = useState('Apartamento')
-  const [listingKind, setListingKind] = useState<'aluguel' | 'venda'>('venda')
-  const [area, setArea] = useState('')
-  const [bedrooms, setBedrooms] = useState('')
-  const [bathrooms, setBathrooms] = useState('')
-  const [parking, setParking] = useState('')
-  const [suites, setSuites] = useState('')
-  const [featuresText, setFeaturesText] = useState('')
-  const [pageLink, setPageLink] = useState('')
+  const [title, setTitle] = useState(initialData?.title ?? '')
+  const [price, setPrice] = useState(initialData?.price ?? '')
+  const [location, setLocation] = useState(initialData?.location ?? '')
+  const [description, setDescription] = useState(initialData?.description ?? '')
+  const [propertyType, setPropertyType] = useState(initialData?.propertyType ?? 'Apartamento')
+  const [listingKind, setListingKind] = useState<'aluguel' | 'venda'>(initialData?.listingKind ?? 'venda')
+  const [area, setArea] = useState(initialData?.area ?? '')
+  const [bedrooms, setBedrooms] = useState(initialData?.bedrooms ?? '')
+  const [bathrooms, setBathrooms] = useState(initialData?.bathrooms ?? '')
+  const [parking, setParking] = useState(initialData?.parking ?? '')
+  const [suites, setSuites] = useState(initialData?.suites ?? '')
+  const [featuresText, setFeaturesText] = useState(initialData?.featuresText ?? '')
+  const [pageLink, setPageLink] = useState(initialData?.pageLink ?? '')
   const [files, setFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +60,7 @@ export function AddImovelModal({ onClose, onSave }: Props) {
       setError('Preencha título, preço e local.')
       return
     }
-    if (files.length === 0) {
+    if (!isEdit && files.length === 0) {
       setError('Adicione pelo menos uma foto (upload).')
       return
     }
@@ -96,7 +100,7 @@ export function AddImovelModal({ onClose, onSave }: Props) {
     >
       <div className={styles.panel} onClick={(e) => e.stopPropagation()} data-stop-tap>
         <h2 id={`${formId}-title`} className={styles.title}>
-          Novo imóvel (neste dispositivo)
+          {isEdit ? 'Editar imóvel (neste dispositivo)' : 'Novo imóvel (neste dispositivo)'}
         </h2>
         <p className={styles.lead}>
           As fotos e os dados ficam no <strong>IndexedDB</strong> deste navegador — não são enviados ao site nem entram no
@@ -115,9 +119,13 @@ export function AddImovelModal({ onClose, onSave }: Props) {
               onChange={onFilesChange}
             />
             <label htmlFor={fileInputId} className={styles.fileBtn}>
-              Escolher imagens…
+              {isEdit ? 'Trocar imagens…' : 'Escolher imagens…'}
             </label>
-            <p className={styles.hint}>Dica: selecione varias imagens de uma vez no explorador.</p>
+            <p className={styles.hint}>
+              {isEdit
+                ? 'Se não selecionar novas imagens, o cadastro mantém as fotos atuais.'
+                : 'Dica: selecione varias imagens de uma vez no explorador.'}
+            </p>
             {files.length > 0 ? (
               <ul className={styles.fileList}>
                 {files.map((f, i) => (
@@ -253,7 +261,7 @@ export function AddImovelModal({ onClose, onSave }: Props) {
 
           <div className={styles.actions}>
             <button type="submit" className={styles.primary} disabled={saving}>
-              {saving ? 'Salvando…' : 'Salvar no dispositivo'}
+              {saving ? 'Salvando…' : isEdit ? 'Salvar alterações' : 'Salvar no dispositivo'}
             </button>
             <button type="button" className={styles.ghost} onClick={onClose} disabled={saving}>
               Cancelar

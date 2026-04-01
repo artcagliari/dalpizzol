@@ -5,9 +5,10 @@ type Props = {
   summaries: LocalImovelSummary[]
   onClose: () => void
   onDelete: (id: string) => Promise<void>
+  onEdit: (id: string) => Promise<void>
 }
 
-export function ManageLocalImoveisModal({ summaries, onClose, onDelete }: Props) {
+export function ManageLocalImoveisModal({ summaries, onClose, onDelete, onEdit }: Props) {
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true" aria-labelledby="manage-local-title" onClick={onClose}>
       <div className={styles.panel} onClick={(e) => e.stopPropagation()} data-stop-tap>
@@ -24,16 +25,21 @@ export function ManageLocalImoveisModal({ summaries, onClose, onDelete }: Props)
             {summaries.map((s) => (
               <li key={s.id} className={styles.manageRow}>
                 <span className={styles.manageTitle}>{s.title}</span>
-                <button
-                  type="button"
-                  className={styles.manageDelete}
-                  onClick={async () => {
-                    if (!window.confirm(`Apagar “${s.title}” deste dispositivo?`)) return
-                    await onDelete(s.id)
-                  }}
-                >
-                  Apagar
-                </button>
+                <div className={styles.manageActions}>
+                  <button type="button" className={styles.ghost} onClick={() => void onEdit(s.id)}>
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.manageDelete}
+                    onClick={async () => {
+                      if (!window.confirm(`Apagar “${s.title}” deste dispositivo?`)) return
+                      await onDelete(s.id)
+                    }}
+                  >
+                    Apagar
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
