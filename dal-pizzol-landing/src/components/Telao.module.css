@@ -245,6 +245,7 @@
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   opacity: 0;
   transition: opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
@@ -256,7 +257,7 @@
 }
 
 .imgPanel {
-  flex: 0 0 58%;
+  flex: 0 0 46%;
   position: relative;
   overflow: hidden;
 }
@@ -277,7 +278,7 @@
 .imgOverlayR {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, transparent 50%, #07090d 100%);
+  background: linear-gradient(to bottom, transparent 40%, #07090d 100%);
   pointer-events: none;
 }
 
@@ -325,11 +326,12 @@
   background: #07090d;
   padding: clamp(16px, 3vh, 28px) clamp(16px, 3vw, 40px) clamp(16px, 3vh, 28px) clamp(20px, 4vw, 48px);
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: clamp(12px, 2vw, 24px);
   min-width: 0;
+  overflow-y: auto;
 }
 
 .detailInner {
@@ -342,12 +344,13 @@
 }
 
 .panelLogo {
-  flex: 0 0 clamp(120px, 12vw, 220px);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   align-self: center;
-  padding: 8px 0 8px 12px;
+  order: -1;
+  padding: 0 0 8px;
 }
 
 .panelLogo img {
