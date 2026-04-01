@@ -1,3 +1,23 @@
+.viewport {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #07090d;
+}
+
+.portraitStage {
+  --unit: min(calc(100dvw / 16), calc(100dvh / 9));
+  width: calc(var(--unit) * 9);
+  height: calc(var(--unit) * 16);
+  transform: rotate(90deg);
+  transform-origin: center;
+  overflow: hidden;
+  background: #07090d;
+}
+
 .shell {
   box-sizing: border-box;
   min-height: 100vh;
