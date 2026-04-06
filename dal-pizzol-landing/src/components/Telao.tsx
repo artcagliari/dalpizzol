@@ -13,6 +13,9 @@ import styles from './Telao.module.css'
 /** Tempo em cada foto antes de ir à próxima (ou ao próximo imóvel na última foto). */
 const PHOTO_DWELL_MS = 4_000
 const PROG_STEP_MS = 150
+const TITLE_MAX_CHARS = 48
+const LOCATION_MAX_CHARS = 56
+const DESCRIPTION_MAX_CHARS = 220
 
 export interface TelaoProps {
   imoveis: Imovel[]
@@ -50,6 +53,8 @@ export function Telao({
   const [paused, setPaused] = useState(false)
   const [progVal, setProgVal] = useState(0)
   const [showLoading, setShowLoading] = useState(true)
+  const [hideUi, setHideUi] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => Boolean(document.fullscreenElement))
   const [showAddImovelModal, setShowAddImovelModal] = useState(false)
   const [showManageLocalModal, setShowManageLocalModal] = useState(false)
   const [addImovelModalKey, setAddImovelModalKey] = useState(0)
@@ -60,6 +65,18 @@ export function Telao({
   const progRef = useRef(0)
 
   const activeSlide = slides[activeIndex]
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      // Ignora rejeições de fullscreen em navegadores/dispositivos sem suporte.
+    }
+  }, [])
 
   useEffect(() => {
     if (loadStatus !== 'ready') return
@@ -119,6 +136,12 @@ export function Telao({
   }, [activeIndex, photoIdx, len, paused, showLoading, slides])
 
   useEffect(() => {
+    const onFs = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [])
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (showAddImovelModal || showManageLocalModal || showEditImovelModal) {
         if (e.key === 'Escape') {
@@ -134,10 +157,18 @@ export function Telao({
         e.preventDefault()
         setPaused((p) => !p)
       }
+      if (e.key.toLowerCase() === 'h') {
+        e.preventDefault()
+        setHideUi((v) => !v)
+      }
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault()
+        void toggleFullscreen()
+      }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [navSlide, showAddImovelModal, showManageLocalModal, showEditImovelModal])
+  }, [navSlide, showAddImovelModal, showManageLocalModal, showEditImovelModal, toggleFullscreen])
 
   const nPhotosActive = len > 0 ? Math.max(1, activeSlide?.photoUrls.length ?? 1) : 0
   const counterLine =
@@ -213,46 +244,57 @@ export function Telao({
 
       {!showLoading && loadStatus === 'ready' && (
         <>
-          <div className={styles.topbar}>
-            <div className={styles.brandRow}>
-              <div>
-                <div className={styles.logoMark}>Dalpizzol</div>
-                <div className={styles.logoSub}>
-                  Negócios Imobiliários · Bento Gonçalves · Garibaldi
-                  <br />
-                  Carlos Barbosa · Farroupilha
+          {!hideUi ? (
+            <div className={styles.topbar}>
+              <div className={styles.brandRow}>
+                <div>
+                  <div className={styles.logoMark}>Dalpizzol</div>
+                  <div className={styles.logoSub}>
+                    Negócios Imobiliários · Bento Gonçalves · Garibaldi
+                    <br />
+                    Carlos Barbosa · Farroupilha
+                  </div>
                 </div>
               </div>
+              <div className={styles.topRight}>
+                {topRightLogo ? (
+                  <a
+                    className={styles.topbarLogoLink}
+                    href={SITE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Dal Pizzol — abrir site"
+                  >
+                    <img
+                      className={styles.topbarLogoFull}
+                      src={topRightLogo}
+                      alt="Dal Pizzol Negócios Imobiliários"
+                    />
+                  </a>
+                ) : null}
+                <div className={styles.counter}>{counterLine}</div>
+              </div>
             </div>
-            <div className={styles.topRight}>
-              {topRightLogo ? (
-                <a
-                  className={styles.topbarLogoLink}
-                  href={SITE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Dal Pizzol — abrir site"
-                >
-                  <img
-                    className={styles.topbarLogoFull}
-                    src={topRightLogo}
-                    alt="Dal Pizzol Negócios Imobiliários"
-                  />
-                </a>
-              ) : null}
-              <div className={styles.counter}>{counterLine}</div>
-            </div>
-          </div>
+          ) : null}
 
           <div className={styles.slidesWrapper} role="presentation">
             {len > 0 ? (
               <>
-                <button type="button" className={`${styles.navBtn} ${styles.navPrev}`} onClick={() => navSlide(-1)} aria-label="Anterior">
-                  ‹
-                </button>
-                <button type="button" className={`${styles.navBtn} ${styles.navNext}`} onClick={() => navSlide(1)} aria-label="Próximo">
-                  ›
-                </button>
+                {!hideUi ? (
+                  <>
+                    <button
+                      type="button"
+                      className={`${styles.navBtn} ${styles.navPrev}`}
+                      onClick={() => navSlide(-1)}
+                      aria-label="Anterior"
+                    >
+                      ‹
+                    </button>
+                    <button type="button" className={`${styles.navBtn} ${styles.navNext}`} onClick={() => navSlide(1)} aria-label="Próximo">
+                      ›
+                    </button>
+                  </>
+                ) : null}
 
                 {slides.map((prop, i) => (
                   <TelaoSlide
@@ -262,6 +304,7 @@ export function Telao({
                     logoSemSrc={logoSemSrc}
                     photoIndex={i === activeIndex ? photoIdx : 0}
                     onPhotoSelect={i === activeIndex ? setPhotoIdx : undefined}
+                    hideUi={hideUi}
                   />
                 ))}
               </>
@@ -276,65 +319,73 @@ export function Telao({
             )}
           </div>
 
-          <div className={styles.bottombar}>
-            {onAddLocalImovel ? (
-              <button
-                type="button"
-                className={styles.newImovelBtn}
-                onClick={() => {
-                  setAddImovelModalKey((k) => k + 1)
-                  setShowAddImovelModal(true)
-                }}
-                data-stop-tap
-              >
-                Novo imóvel
-              </button>
-            ) : null}
-            {onDeleteLocalImovel ? (
-              <button
-                type="button"
-                className={styles.manageLocalBtn}
-                onClick={() => setShowManageLocalModal(true)}
-                data-stop-tap
-              >
-                Imóveis locais
-              </button>
-            ) : null}
-            {activeSlide?.localDbId && onDeleteLocalImovel ? (
-              <button
-                type="button"
-                className={styles.deleteLocalBtn}
-                onClick={async () => {
-                  if (!activeSlide.localDbId) return
-                  if (!window.confirm(`Apagar “${activeSlide.title}” deste dispositivo?`)) return
-                  await onDeleteLocalImovel(activeSlide.localDbId)
-                }}
-                data-stop-tap
-              >
-                Apagar atual
-              </button>
-            ) : null}
-            <div className={styles.dots}>
-              {slides.map((s, i) => (
+          {!hideUi ? (
+            <div className={styles.bottombar}>
+              {onAddLocalImovel ? (
                 <button
-                  key={s.id}
                   type="button"
-                  className={`${styles.dot} ${i === activeIndex ? styles.dotActive : ''}`}
-                  aria-label={`Imóvel ${i + 1}`}
-                  aria-current={i === activeIndex}
-                  onClick={() => navTo(i)}
-                />
-              ))}
+                  className={styles.newImovelBtn}
+                  onClick={() => {
+                    setAddImovelModalKey((k) => k + 1)
+                    setShowAddImovelModal(true)
+                  }}
+                  data-stop-tap
+                >
+                  Novo imóvel
+                </button>
+              ) : null}
+              {onDeleteLocalImovel ? (
+                <button
+                  type="button"
+                  className={styles.manageLocalBtn}
+                  onClick={() => setShowManageLocalModal(true)}
+                  data-stop-tap
+                >
+                  Imóveis locais
+                </button>
+              ) : null}
+              {activeSlide?.localDbId && onDeleteLocalImovel ? (
+                <button
+                  type="button"
+                  className={styles.deleteLocalBtn}
+                  onClick={async () => {
+                    if (!activeSlide.localDbId) return
+                    if (!window.confirm(`Apagar “${activeSlide.title}” deste dispositivo?`)) return
+                    await onDeleteLocalImovel(activeSlide.localDbId)
+                  }}
+                  data-stop-tap
+                >
+                  Apagar atual
+                </button>
+              ) : null}
+              <button type="button" className={styles.manageLocalBtn} onClick={() => void toggleFullscreen()} data-stop-tap>
+                {isFullscreen ? 'Sair tela cheia' : 'Tela cheia'}
+              </button>
+              <button type="button" className={styles.manageLocalBtn} onClick={() => setHideUi(true)} data-stop-tap>
+                Ocultar UI
+              </button>
+              <div className={styles.dots}>
+                {slides.map((s, i) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`${styles.dot} ${i === activeIndex ? styles.dotActive : ''}`}
+                    aria-label={`Imóvel ${i + 1}`}
+                    aria-current={i === activeIndex}
+                    onClick={() => navTo(i)}
+                  />
+                ))}
+              </div>
+              <div className={styles.progressTrack}>
+                <div className={styles.progressFill} style={{ width: `${progVal}%` }} />
+              </div>
+              <div className={styles.siteUrl}>
+                <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
+                  www.dalpizzolimoveis.com.br
+                </a>
+              </div>
             </div>
-            <div className={styles.progressTrack}>
-              <div className={styles.progressFill} style={{ width: `${progVal}%` }} />
-            </div>
-            <div className={styles.siteUrl}>
-              <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
-                www.dalpizzolimoveis.com.br
-              </a>
-            </div>
-          </div>
+          ) : null}
         </>
       )}
     </div>
@@ -347,12 +398,14 @@ function TelaoSlide({
   logoSemSrc,
   photoIndex,
   onPhotoSelect,
+  hideUi,
 }: {
   prop: TelaoSlideModel
   active: boolean
   logoSemSrc?: string
   photoIndex: number
   onPhotoSelect?: (index: number) => void
+  hideUi: boolean
 }) {
   const n = Math.max(1, prop.photoUrls.length)
   const safeIdx = ((photoIndex % n) + n) % n
@@ -362,6 +415,9 @@ function TelaoSlide({
     : { background: getTelaoGradient(prop.type) }
 
   const multiPhotos = prop.photoUrls.length > 1
+  const shortTitle = truncateText(prop.title, TITLE_MAX_CHARS)
+  const shortLocation = truncateText(prop.location, LOCATION_MAX_CHARS)
+  const shortDescription = truncateText(prop.description, DESCRIPTION_MAX_CHARS)
 
   return (
     <div className={`${styles.slide} ${active ? styles.slideActive : ''}`} aria-hidden={!active}>
@@ -369,7 +425,7 @@ function TelaoSlide({
         <div className={styles.imgBg} style={bgStyle} />
         <div className={styles.imgOverlayR} />
         <div className={styles.imgOverlayB} />
-        {multiPhotos ? (
+        {multiPhotos && !hideUi ? (
           <div className={styles.imgFilmstrip} data-stop-tap onClick={(e) => e.stopPropagation()}>
             {prop.photoUrls.map((u, i) => (
               <button
@@ -392,9 +448,9 @@ function TelaoSlide({
             <span className={styles.pin} aria-hidden>
               ●
             </span>{' '}
-            {prop.location || 'Bento Gonçalves · RS'}
+            {shortLocation || 'Bento Gonçalves · RS'}
           </div>
-          <h2 className={styles.propTitle}>{prop.title || 'Imóvel disponível'}</h2>
+          <h2 className={styles.propTitle}>{shortTitle || 'Imóvel disponível'}</h2>
           <div className={styles.propPrice}>
             {formatPriceBRL(prop.price)}
             {prop.purpose === 'Aluguel' ? <small> /mês</small> : null}
@@ -431,8 +487,8 @@ function TelaoSlide({
               </div>
             ) : null}
           </div>
-          {prop.description ? <p className={styles.propDesc}>{prop.description}</p> : null}
-          {multiPhotos ? (
+          {shortDescription ? <p className={styles.propDesc}>{shortDescription}</p> : null}
+          {multiPhotos && !hideUi ? (
             <p className={styles.photoHint} data-stop-tap>
               {prop.photoUrls.length} fotos — ~{PHOTO_DWELL_MS / 1000}s em cada; em seguida passa ao próximo imóvel. Clique nas
               miniaturas para pular.
@@ -467,4 +523,13 @@ function TelaoSlide({
       </div>
     </div>
   )
+}
+
+function truncateText(text: string | undefined, maxChars: number): string {
+  const src = text?.trim() ?? ''
+  if (!src || src.length <= maxChars) return src
+  const cut = src.slice(0, maxChars)
+  const lastSpace = cut.lastIndexOf(' ')
+  const safe = lastSpace > Math.floor(maxChars * 0.7) ? cut.slice(0, lastSpace) : cut
+  return `${safe.trim()}...`
 }
