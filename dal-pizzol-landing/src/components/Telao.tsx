@@ -13,9 +13,6 @@ import styles from './Telao.module.css'
 /** Tempo em cada foto antes de ir à próxima (ou ao próximo imóvel na última foto). */
 const PHOTO_DWELL_MS = 4_000
 const PROG_STEP_MS = 150
-const TITLE_MAX_CHARS = 48
-const LOCATION_MAX_CHARS = 56
-const DESCRIPTION_MAX_CHARS = 220
 
 export interface TelaoProps {
   imoveis: Imovel[]
@@ -179,7 +176,7 @@ export function Telao({
         : `Imóvel ${activeIndex + 1} / ${slides.length}`
 
   return (
-    <div className={styles.app}>
+    <div className={`${styles.app} ${isFullscreen ? styles.fullscreenMode : ''}`}>
       {showAddImovelModal && onAddLocalImovel ? (
         <AddImovelModal
           key={addImovelModalKey}
@@ -415,10 +412,6 @@ function TelaoSlide({
     : { background: getTelaoGradient(prop.type) }
 
   const multiPhotos = prop.photoUrls.length > 1
-  const shortTitle = truncateText(prop.title, TITLE_MAX_CHARS)
-  const shortLocation = truncateText(prop.location, LOCATION_MAX_CHARS)
-  const shortDescription = truncateText(prop.description, DESCRIPTION_MAX_CHARS)
-
   return (
     <div className={`${styles.slide} ${active ? styles.slideActive : ''}`} aria-hidden={!active}>
       <div className={styles.imgPanel}>
@@ -448,9 +441,9 @@ function TelaoSlide({
             <span className={styles.pin} aria-hidden>
               ●
             </span>{' '}
-            {shortLocation || 'Bento Gonçalves · RS'}
+            {prop.location || 'Bento Gonçalves · RS'}
           </div>
-          <h2 className={styles.propTitle}>{shortTitle || 'Imóvel disponível'}</h2>
+          <h2 className={styles.propTitle}>{prop.title || 'Imóvel disponível'}</h2>
           <div className={styles.propPrice}>
             {formatPriceBRL(prop.price)}
             {prop.purpose === 'Aluguel' ? <small> /mês</small> : null}
@@ -487,7 +480,7 @@ function TelaoSlide({
               </div>
             ) : null}
           </div>
-          {shortDescription ? <p className={styles.propDesc}>{shortDescription}</p> : null}
+          {prop.description ? <p className={styles.propDesc}>{prop.description}</p> : null}
           {multiPhotos && !hideUi ? (
             <p className={styles.photoHint} data-stop-tap>
               {prop.photoUrls.length} fotos — ~{PHOTO_DWELL_MS / 1000}s em cada; em seguida passa ao próximo imóvel. Clique nas
@@ -523,13 +516,4 @@ function TelaoSlide({
       </div>
     </div>
   )
-}
-
-function truncateText(text: string | undefined, maxChars: number): string {
-  const src = text?.trim() ?? ''
-  if (!src || src.length <= maxChars) return src
-  const cut = src.slice(0, maxChars)
-  const lastSpace = cut.lastIndexOf(' ')
-  const safe = lastSpace > Math.floor(maxChars * 0.7) ? cut.slice(0, lastSpace) : cut
-  return `${safe.trim()}...`
 }
