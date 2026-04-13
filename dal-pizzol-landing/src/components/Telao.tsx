@@ -59,6 +59,7 @@ export function Telao({
   const [editingLocalId, setEditingLocalId] = useState<string | null>(null)
   const [editingInitialData, setEditingInitialData] = useState<LocalImovelFormData | null>(null)
   const [editImovelModalKey, setEditImovelModalKey] = useState(0)
+  const [bottomMenuOpen, setBottomMenuOpen] = useState(false)
   const progRef = useRef(0)
 
   const activeSlide = slides[activeIndex]
@@ -317,70 +318,88 @@ export function Telao({
           </div>
 
           {!hideUi ? (
-            <div className={styles.bottombar}>
-              {onAddLocalImovel ? (
-                <button
-                  type="button"
-                  className={styles.newImovelBtn}
-                  onClick={() => {
-                    setAddImovelModalKey((k) => k + 1)
-                    setShowAddImovelModal(true)
-                  }}
-                  data-stop-tap
-                >
-                  Novo imóvel
-                </button>
-              ) : null}
-              {onDeleteLocalImovel ? (
-                <button
-                  type="button"
-                  className={styles.manageLocalBtn}
-                  onClick={() => setShowManageLocalModal(true)}
-                  data-stop-tap
-                >
-                  Imóveis locais
-                </button>
-              ) : null}
-              {activeSlide?.localDbId && onDeleteLocalImovel ? (
-                <button
-                  type="button"
-                  className={styles.deleteLocalBtn}
-                  onClick={async () => {
-                    if (!activeSlide.localDbId) return
-                    if (!window.confirm(`Apagar “${activeSlide.title}” deste dispositivo?`)) return
-                    await onDeleteLocalImovel(activeSlide.localDbId)
-                  }}
-                  data-stop-tap
-                >
-                  Apagar atual
-                </button>
-              ) : null}
-              <button type="button" className={styles.manageLocalBtn} onClick={() => void toggleFullscreen()} data-stop-tap>
-                {isFullscreen ? 'Sair tela cheia' : 'Tela cheia'}
+            <div className={styles.bottomDock}>
+              <div
+                id="telao-bottom-menu"
+                className={`${styles.bottombarCollapsible} ${bottomMenuOpen ? styles.bottombarCollapsibleOpen : ''}`}
+                aria-hidden={!bottomMenuOpen}
+              >
+                <div className={styles.bottombar}>
+                  {onAddLocalImovel ? (
+                    <button
+                      type="button"
+                      className={styles.newImovelBtn}
+                      onClick={() => {
+                        setAddImovelModalKey((k) => k + 1)
+                        setShowAddImovelModal(true)
+                      }}
+                      data-stop-tap
+                    >
+                      Novo imóvel
+                    </button>
+                  ) : null}
+                  {onDeleteLocalImovel ? (
+                    <button
+                      type="button"
+                      className={styles.manageLocalBtn}
+                      onClick={() => setShowManageLocalModal(true)}
+                      data-stop-tap
+                    >
+                      Imóveis locais
+                    </button>
+                  ) : null}
+                  {activeSlide?.localDbId && onDeleteLocalImovel ? (
+                    <button
+                      type="button"
+                      className={styles.deleteLocalBtn}
+                      onClick={async () => {
+                        if (!activeSlide.localDbId) return
+                        if (!window.confirm(`Apagar “${activeSlide.title}” deste dispositivo?`)) return
+                        await onDeleteLocalImovel(activeSlide.localDbId)
+                      }}
+                      data-stop-tap
+                    >
+                      Apagar atual
+                    </button>
+                  ) : null}
+                  <button type="button" className={styles.manageLocalBtn} onClick={() => void toggleFullscreen()} data-stop-tap>
+                    {isFullscreen ? 'Sair tela cheia' : 'Tela cheia'}
+                  </button>
+                  <button type="button" className={styles.manageLocalBtn} onClick={() => setHideUi(true)} data-stop-tap>
+                    Ocultar UI
+                  </button>
+                  <div className={styles.dots}>
+                    {slides.map((s, i) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className={`${styles.dot} ${i === activeIndex ? styles.dotActive : ''}`}
+                        aria-label={`Imóvel ${i + 1}`}
+                        aria-current={i === activeIndex}
+                        onClick={() => navTo(i)}
+                      />
+                    ))}
+                  </div>
+                  <div className={styles.progressTrack}>
+                    <div className={styles.progressFill} style={{ width: `${progVal}%` }} />
+                  </div>
+                  <div className={styles.siteUrl}>
+                    <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
+                      www.dalpizzolimoveis.com.br
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.bottomMenuToggle}
+                onClick={() => setBottomMenuOpen((v) => !v)}
+                aria-expanded={bottomMenuOpen}
+                aria-controls="telao-bottom-menu"
+                data-stop-tap
+              >
+                {bottomMenuOpen ? 'Ocultar menu' : 'Menu'}
               </button>
-              <button type="button" className={styles.manageLocalBtn} onClick={() => setHideUi(true)} data-stop-tap>
-                Ocultar UI
-              </button>
-              <div className={styles.dots}>
-                {slides.map((s, i) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className={`${styles.dot} ${i === activeIndex ? styles.dotActive : ''}`}
-                    aria-label={`Imóvel ${i + 1}`}
-                    aria-current={i === activeIndex}
-                    onClick={() => navTo(i)}
-                  />
-                ))}
-              </div>
-              <div className={styles.progressTrack}>
-                <div className={styles.progressFill} style={{ width: `${progVal}%` }} />
-              </div>
-              <div className={styles.siteUrl}>
-                <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
-                  www.dalpizzolimoveis.com.br
-                </a>
-              </div>
             </div>
           ) : null}
         </>

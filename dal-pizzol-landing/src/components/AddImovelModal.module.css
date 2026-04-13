@@ -67,6 +67,15 @@
   color: #6d6860;
 }
 
+.charHint {
+  font-size: 11px;
+  color: #5a554c;
+  line-height: 1.4;
+  margin: -2px 0 2px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
 .input,
 .select,
 .textarea {

@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { TELAO_DESCRIPTION_MAX_CHARS } from '../constants/telaoDisplay'
 import type { AddLocalImovelInput } from '../hooks/useLocalImoveis'
 import type { LocalImovelFormData } from '../hooks/useLocalImoveis'
 import styles from './AddImovelModal.module.css'
@@ -132,7 +133,7 @@ export function AddImovelModal({ onClose, onSave, initialData, mode = 'create' }
                   <li key={`${f.name}-${i}`} className={styles.fileRow}>
                     <span className={styles.fileName}>{f.name}</span>
                     <button type="button" className={styles.fileRemove} onClick={() => removeFileAt(i)}>
-                  Remover
+                      Remover
                     </button>
                   </li>
                 ))}
@@ -226,11 +227,13 @@ export function AddImovelModal({ onClose, onSave, initialData, mode = 'create' }
 
           <label className={styles.field}>
             <span className={styles.label}>Descrição</span>
+            <span className={styles.charHint}>Máx. {TELAO_DESCRIPTION_MAX_CHARS} caracteres no telão (texto completo visível de uma vez).</span>
             <textarea
               className={styles.textarea}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
+              maxLength={TELAO_DESCRIPTION_MAX_CHARS}
               placeholder="Texto exibido no painel do telão"
             />
           </label>
@@ -253,7 +256,8 @@ export function AddImovelModal({ onClose, onSave, initialData, mode = 'create' }
               value={pageLink}
               onChange={(e) => setPageLink(e.target.value)}
               placeholder="https://www.dalpizzolimoveis.com.br/…"
-              type="url"
+              type="text"
+              inputMode="url"
             />
           </label>
 

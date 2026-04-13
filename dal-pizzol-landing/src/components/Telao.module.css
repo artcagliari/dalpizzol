@@ -613,15 +613,61 @@
   box-shadow: 0 4px 16px rgba(201, 160, 85, 0.25);
 }
 
-.bottombar {
+.bottomDock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   background: #050608;
   border-top: 1px solid #0e1017;
+}
+
+.bottombarCollapsible {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    max-height 0.38s ease,
+    opacity 0.22s ease;
+}
+
+.bottombarCollapsibleOpen {
+  max-height: min(320px, 55vh);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bottombar {
   padding: clamp(12px, 2vh, 16px) clamp(16px, 3vw, 48px);
   display: flex;
   align-items: center;
   gap: 16px 20px;
-  flex-shrink: 0;
   flex-wrap: wrap;
+}
+
+.bottomMenuToggle {
+  align-self: center;
+  margin: 0 0 10px;
+  padding: 8px 24px;
+  background: rgba(201, 160, 85, 0.1);
+  border: 1px solid rgba(201, 160, 85, 0.45);
+  color: #c9a055;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: inherit;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.bottomMenuToggle:hover {
+  background: rgba(201, 160, 85, 0.18);
+  border-color: #c9a055;
 }
 
 .newImovelBtn {

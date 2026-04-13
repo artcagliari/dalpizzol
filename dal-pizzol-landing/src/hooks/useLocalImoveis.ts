@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Imovel } from '../types/imovel'
+import { TELAO_DESCRIPTION_MAX_CHARS } from '../constants/telaoDisplay'
 import type { LocalImovelRecord } from '../db/localImoveisDb'
 import { dbDeleteLocalImovel, dbListLocalImoveis, dbPutLocalImovel } from '../db/imoveisDb'
 
 export type LocalImovelSummary = { id: string; title: string }
+type LegacyLocalImovelRecord = LocalImovelRecord & {
+  imageUrls?: unknown
+  imageDataUrls?: unknown
+  photoUrls?: unknown
+  images?: unknown
+  img?: unknown
+}
 export type LocalImovelFormData = {
   title: string
   price: string
@@ -33,6 +41,108 @@ function parseFeatures(text: string): string[] | undefined {
     .map((x) => x.trim())
     .filter(Boolean)
   return parts.length ? parts : undefined
+}
+
+function clampDescription(description: string): string | undefined {
+  const trimmed = description.trim()
+  if (!trimmed) return undefined
+  if (trimmed.length <= TELAO_DESCRIPTION_MAX_CHARS) return trimmed
+  return trimmed.slice(0, TELAO_DESCRIPTION_MAX_CHARS).trimEnd()
+}
+
+function normalizePageLink(pageLink: string): string | undefined {
+  const trimmed = pageLink.trim()
+  if (!trimmed) return undefined
+  const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  try {
+    return new URL(withProtocol).toString()
+  } catch {
+    return undefined
+  }
+}
+
+function createLocalImovelId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed || undefined
+}
+
+function normalizeOptionalNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value
+  if (typeof value === 'string') return parseOptionalInt(value)
+  return undefined
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const out: string[] = []
+  for (const item of value) {
+    if (typeof item !== 'string') continue
+    const trimmed = item.trim()
+    if (trimmed) out.push(trimmed)
+  }
+  return out
+}
+
+function readBlobArray(value: unknown): Blob[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is Blob => item instanceof Blob)
+}
+
+function buildPhotoSet(row: LegacyLocalImovelRecord, objectUrlsOut: string[]): { img: string; images?: string[] } {
+  const photoSet = new Set<string>()
+  const allPhotos: string[] = []
+
+  const push = (url: string | undefined) => {
+    if (!url || photoSet.has(url)) return
+    photoSet.add(url)
+    allPhotos.push(url)
+  }
+
+  for (const blob of readBlobArray(row.imageBlobs)) {
+    const objectUrl = URL.createObjectURL(blob)
+    objectUrlsOut.push(objectUrl)
+    push(objectUrl)
+  }
+
+  for (const url of readStringArray(row.imageBlobs)) push(url)
+  for (const url of readStringArray(row.imageUrls)) push(url)
+  for (const url of readStringArray(row.imageDataUrls)) push(url)
+  for (const url of readStringArray(row.photoUrls)) push(url)
+  for (const url of readStringArray(row.images)) push(url)
+  push(normalizeOptionalString(row.img))
+
+  const [img = '', ...images] = allPhotos
+  return images.length ? { img, images } : { img }
+}
+
+function normalizeRecord(row: LegacyLocalImovelRecord): LocalImovelRecord {
+  return {
+    id: normalizeOptionalString(row.id) || createLocalImovelId(),
+    createdAt: typeof row.createdAt === 'number' && Number.isFinite(row.createdAt) ? row.createdAt : Date.now(),
+    title: normalizeOptionalString(row.title) || 'Imóvel local',
+    price: normalizeOptionalString(row.price) || 'Consulte',
+    location: normalizeOptionalString(row.location) || 'Bento Gonçalves · RS',
+    description: normalizeOptionalString(row.description),
+    propertyType: normalizeOptionalString(row.propertyType),
+    listingKind: row.listingKind === 'aluguel' || row.listingKind === 'venda' ? row.listingKind : undefined,
+    priceLabel: normalizeOptionalString(row.priceLabel),
+    area: normalizeOptionalString(row.area),
+    bedrooms: normalizeOptionalNumber(row.bedrooms),
+    bathrooms: normalizeOptionalNumber(row.bathrooms),
+    parking: normalizeOptionalNumber(row.parking),
+    suites: normalizeOptionalNumber(row.suites),
+    features: Array.isArray(row.features)
+      ? row.features.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      : undefined,
+    pageLink: normalizePageLink(normalizeOptionalString(row.pageLink) || ''),
+    imageBlobs: readBlobArray(row.imageBlobs),
+  }
 }
 
 export type AddLocalImovelInput = {
@@ -70,38 +180,44 @@ export function useLocalImoveis() {
     revokeAll()
     try {
       const rows = await dbListLocalImoveis()
-      rowsRef.current = rows
-      setSummaries(rows.map((r) => ({ id: r.id, title: r.title })))
       const allUrls: string[] = []
-      const imoveis: Imovel[] = rows.map((row) => {
-        const blobs = row.imageBlobs ?? []
-        const objectUrls = blobs.map((b) => {
-          const u = URL.createObjectURL(b)
-          allUrls.push(u)
-          return u
+      const normalizedRows: LocalImovelRecord[] = []
+      const summariesOut: LocalImovelSummary[] = []
+      const imoveis: Imovel[] = []
+
+      for (const row of rows) {
+        const legacyRow = row as LegacyLocalImovelRecord
+        const normalized = normalizeRecord(legacyRow)
+        normalizedRows.push(normalized)
+        summariesOut.push({ id: normalized.id, title: normalized.title })
+
+        const photos = buildPhotoSet(legacyRow, allUrls)
+        const features = Array.isArray(legacyRow.features)
+          ? legacyRow.features.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+          : normalized.features
+
+        imoveis.push({
+          title: normalized.title,
+          price: normalized.price,
+          location: normalized.location,
+          ...photos,
+          link: normalized.pageLink || `local://${normalized.id}`,
+          description: normalized.description,
+          propertyType: normalized.propertyType,
+          listingKind: normalized.listingKind,
+          priceLabel: normalized.priceLabel,
+          area: normalized.area,
+          bedrooms: normalized.bedrooms,
+          bathrooms: normalized.bathrooms,
+          parking: normalized.parking,
+          suites: normalized.suites,
+          features,
+          localDbId: normalized.id,
         })
-        const img = objectUrls[0] ?? ''
-        const rest = objectUrls.slice(1)
-        return {
-          title: row.title,
-          price: row.price,
-          location: row.location,
-          img,
-          ...(rest.length ? { images: rest } : {}),
-          link: row.pageLink?.trim() || `local://${row.id}`,
-          description: row.description,
-          propertyType: row.propertyType,
-          listingKind: row.listingKind,
-          priceLabel: row.priceLabel,
-          area: row.area,
-          bedrooms: row.bedrooms,
-          bathrooms: row.bathrooms,
-          parking: row.parking,
-          suites: row.suites,
-          features: row.features,
-          localDbId: row.id,
-        }
-      })
+      }
+
+      rowsRef.current = normalizedRows
+      setSummaries(summariesOut)
       urlsRef.current = allUrls
       setLocalImoveis(imoveis)
     } catch {
@@ -133,7 +249,7 @@ export function useLocalImoveis() {
           return new Blob([ab], { type: file.type || 'image/jpeg' })
         }),
       )
-      const id = crypto.randomUUID()
+      const id = createLocalImovelId()
       const listingKind = input.listingKind
       const record: LocalImovelRecord = {
         id,
@@ -141,7 +257,7 @@ export function useLocalImoveis() {
         title: input.title.trim(),
         price: input.price.trim(),
         location: input.location.trim(),
-        description: input.description.trim() || undefined,
+        description: clampDescription(input.description),
         propertyType: input.propertyType.trim() || undefined,
         listingKind,
         priceLabel: listingKind === 'aluguel' ? 'Aluguel' : 'Venda',
@@ -151,7 +267,7 @@ export function useLocalImoveis() {
         parking: parseOptionalInt(input.parking),
         suites: parseOptionalInt(input.suites),
         features: parseFeatures(input.featuresText),
-        pageLink: input.pageLink.trim() || undefined,
+        pageLink: normalizePageLink(input.pageLink),
         imageBlobs,
       }
       try {
@@ -175,8 +291,9 @@ export function useLocalImoveis() {
       let row = rowsRef.current.find((x) => x.id === id)
       if (!row) {
         const rows = await dbListLocalImoveis()
-        rowsRef.current = rows
-        row = rows.find((x) => x.id === id)
+        const normalizedRows = rows.map((x) => normalizeRecord(x as LegacyLocalImovelRecord))
+        rowsRef.current = normalizedRows
+        row = normalizedRows.find((x) => x.id === id)
       }
       if (!row) throw new Error('Imóvel não encontrado para edição.')
       return {
@@ -203,8 +320,9 @@ export function useLocalImoveis() {
       let current = rowsRef.current.find((x) => x.id === id)
       if (!current) {
         const rows = await dbListLocalImoveis()
-        rowsRef.current = rows
-        current = rows.find((x) => x.id === id)
+        const normalizedRows = rows.map((x) => normalizeRecord(x as LegacyLocalImovelRecord))
+        rowsRef.current = normalizedRows
+        current = normalizedRows.find((x) => x.id === id)
       }
       if (!current) throw new Error('Imóvel não encontrado para edição.')
 
@@ -224,7 +342,7 @@ export function useLocalImoveis() {
         title: input.title.trim(),
         price: input.price.trim(),
         location: input.location.trim(),
-        description: input.description.trim() || undefined,
+        description: clampDescription(input.description),
         propertyType: input.propertyType.trim() || undefined,
         listingKind,
         priceLabel: listingKind === 'aluguel' ? 'Aluguel' : 'Venda',
@@ -234,7 +352,7 @@ export function useLocalImoveis() {
         parking: parseOptionalInt(input.parking),
         suites: parseOptionalInt(input.suites),
         features: parseFeatures(input.featuresText),
-        pageLink: input.pageLink.trim() || undefined,
+        pageLink: normalizePageLink(input.pageLink),
         imageBlobs,
       }
 
