@@ -34,3 +34,8 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+html[data-theme='light'],
+html[data-theme='light'] body {
+  background: #f4f6f9;
+}

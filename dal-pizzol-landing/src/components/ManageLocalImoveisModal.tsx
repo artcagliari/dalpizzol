@@ -6,12 +6,21 @@ type Props = {
   onClose: () => void
   onDelete: (id: string) => Promise<void>
   onEdit: (id: string) => Promise<void>
+  themeMode?: 'dark' | 'light'
 }
 
-export function ManageLocalImoveisModal({ summaries, onClose, onDelete, onEdit }: Props) {
+export function ManageLocalImoveisModal({ summaries, onClose, onDelete, onEdit, themeMode = 'dark' }: Props) {
+  const isLightTheme = themeMode === 'light'
+
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true" aria-labelledby="manage-local-title" onClick={onClose}>
-      <div className={styles.panel} onClick={(e) => e.stopPropagation()} data-stop-tap>
+    <div
+      className={`${styles.backdrop} ${isLightTheme ? styles.backdropLight : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="manage-local-title"
+      onClick={onClose}
+    >
+      <div className={`${styles.panel} ${isLightTheme ? styles.panelLight : ''}`} onClick={(e) => e.stopPropagation()} data-stop-tap>
         <h2 id="manage-local-title" className={styles.title}>
           Imóveis salvos neste dispositivo
         </h2>

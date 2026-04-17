@@ -11,6 +11,10 @@
   overflow-y: auto;
 }
 
+.backdropLight {
+  background: rgba(15, 23, 42, 0.26);
+}
+
 .panel {
   width: 100%;
   max-width: 560px;
@@ -21,6 +25,12 @@
   padding: 24px 26px 22px;
   border-radius: 4px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+.panelLight {
+  background: #ffffff;
+  border-color: #d8dee8;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
 }
 
 .title {
@@ -306,4 +316,84 @@
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.panelLight .title {
+  color: #8b6c2d;
+}
+
+.panelLight .lead {
+  color: #475569;
+}
+
+.panelLight .lead code {
+  color: #8b6c2d;
+}
+
+.panelLight .label {
+  color: #64748b;
+}
+
+.panelLight .charHint {
+  color: #64748b;
+}
+
+.panelLight .input,
+.panelLight .select,
+.panelLight .textarea {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.panelLight .input:focus,
+.panelLight .select:focus,
+.panelLight .textarea:focus {
+  border-color: rgba(139, 108, 45, 0.7);
+}
+
+.panelLight .fileBtn {
+  background: rgba(139, 108, 45, 0.09);
+  border-color: rgba(139, 108, 45, 0.45);
+  color: #8b6c2d;
+}
+
+.panelLight .fileBtn:hover {
+  background: rgba(139, 108, 45, 0.16);
+}
+
+.panelLight .fileRow {
+  color: #475569;
+  border-bottom-color: #e2e8f0;
+}
+
+.panelLight .fileRemove {
+  color: #8b6c2d;
+}
+
+.panelLight .hint {
+  color: #64748b;
+}
+
+.panelLight .error {
+  color: #b42318;
+}
+
+.panelLight .ghost {
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.panelLight .ghost:hover:not(:disabled) {
+  color: #8b6c2d;
+  border-color: rgba(139, 108, 45, 0.5);
+}
+
+.panelLight .manageList {
+  border-color: #d8dee8;
+}
+
+.panelLight .manageRow {
+  border-bottom-color: #e2e8f0;
+  color: #334155;
 }

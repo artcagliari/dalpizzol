@@ -12,6 +12,7 @@ function inferType(title: string, explicit?: string): string {
   if (explicit?.trim()) return explicit.trim()
   const t = title.toLowerCase()
   if (t.includes('cobertura')) return 'Cobertura'
+  if (t.includes('kitnet') || t.includes('kitinete') || t.includes('studio')) return 'Kitnet'
   if (t.includes('apart') || t.includes('apto')) return 'Apartamento'
   if (t.includes('sobrado')) return 'Sobrado'
   if (t.includes('casa')) return 'Casa'
@@ -45,7 +46,7 @@ function defaultFeatures(imovel: Imovel): string[] {
 
 export function getTelaoGradient(type: string): string {
   const t = type.toLowerCase()
-  if (t.includes('apart') || t.includes('apto') || t.includes('cobert'))
+  if (t.includes('apart') || t.includes('apto') || t.includes('cobert') || t.includes('kitnet') || t.includes('kitinete'))
     return 'linear-gradient(135deg,#0b1422 0%,#0f2040 100%)'
   if (t.includes('casa') || t.includes('sobrado')) return 'linear-gradient(135deg,#0a1a0a 0%,#0f3020 100%)'
   if (t.includes('terreno') || t.includes('lote')) return 'linear-gradient(135deg,#1a120a 0%,#3a200a 100%)'

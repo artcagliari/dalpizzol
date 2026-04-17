@@ -13,6 +13,7 @@ import styles from './Telao.module.css'
 /** Tempo em cada foto antes de ir à próxima (ou ao próximo imóvel na última foto). */
 const PHOTO_DWELL_MS = 4_000
 const PROG_STEP_MS = 150
+type ThemeMode = 'dark' | 'light'
 
 export interface TelaoProps {
   imoveis: Imovel[]
@@ -20,6 +21,8 @@ export interface TelaoProps {
   logoSrc?: string
   topbarLogoSrc?: string
   logoSemSrc?: string
+  themeMode?: ThemeMode
+  onThemeModeChange?: (mode: ThemeMode) => void
   onAddLocalImovel?: (data: AddLocalImovelInput) => Promise<void>
   onUpdateLocalImovel?: (id: string, data: AddLocalImovelInput) => Promise<void>
   onGetLocalImovelForEdit?: (id: string) => Promise<LocalImovelFormData>
@@ -33,6 +36,8 @@ export function Telao({
   logoSrc,
   topbarLogoSrc,
   logoSemSrc,
+  themeMode = 'dark',
+  onThemeModeChange,
   onAddLocalImovel,
   onUpdateLocalImovel,
   onGetLocalImovelForEdit,
@@ -63,6 +68,7 @@ export function Telao({
   const progRef = useRef(0)
 
   const activeSlide = slides[activeIndex]
+  const isLightTheme = themeMode === 'light'
 
   const toggleFullscreen = useCallback(async () => {
     try {
@@ -75,6 +81,11 @@ export function Telao({
       // Ignora rejeições de fullscreen em navegadores/dispositivos sem suporte.
     }
   }, [])
+
+  const toggleThemeMode = useCallback(() => {
+    if (!onThemeModeChange) return
+    onThemeModeChange(isLightTheme ? 'dark' : 'light')
+  }, [isLightTheme, onThemeModeChange])
 
   useEffect(() => {
     if (loadStatus !== 'ready') return
@@ -163,10 +174,14 @@ export function Telao({
         e.preventDefault()
         void toggleFullscreen()
       }
+      if (e.key.toLowerCase() === 'm') {
+        e.preventDefault()
+        toggleThemeMode()
+      }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [navSlide, showAddImovelModal, showManageLocalModal, showEditImovelModal, toggleFullscreen])
+  }, [navSlide, showAddImovelModal, showManageLocalModal, showEditImovelModal, toggleFullscreen, toggleThemeMode])
 
   const nPhotosActive = len > 0 ? Math.max(1, activeSlide?.photoUrls.length ?? 1) : 0
   const counterLine =
@@ -177,17 +192,19 @@ export function Telao({
         : `Imóvel ${activeIndex + 1} / ${slides.length}`
 
   return (
-    <div className={`${styles.app} ${isFullscreen ? styles.fullscreenMode : ''}`}>
+    <div className={`${styles.app} ${isFullscreen ? styles.fullscreenMode : ''} ${isLightTheme ? styles.themeLight : ''}`}>
       {showAddImovelModal && onAddLocalImovel ? (
         <AddImovelModal
           key={addImovelModalKey}
           onClose={() => setShowAddImovelModal(false)}
           onSave={onAddLocalImovel}
+          themeMode={themeMode}
         />
       ) : null}
 
       {showManageLocalModal && onDeleteLocalImovel ? (
         <ManageLocalImoveisModal
+          themeMode={themeMode}
           summaries={localSummaries}
           onClose={() => setShowManageLocalModal(false)}
           onDelete={onDeleteLocalImovel}
@@ -208,6 +225,7 @@ export function Telao({
           key={editImovelModalKey}
           mode="edit"
           initialData={editingInitialData}
+          themeMode={themeMode}
           onClose={() => {
             setShowEditImovelModal(false)
             setEditingLocalId(null)
@@ -365,6 +383,11 @@ export function Telao({
                   <button type="button" className={styles.manageLocalBtn} onClick={() => void toggleFullscreen()} data-stop-tap>
                     {isFullscreen ? 'Sair tela cheia' : 'Tela cheia'}
                   </button>
+                  {onThemeModeChange ? (
+                    <button type="button" className={styles.manageLocalBtn} onClick={toggleThemeMode} data-stop-tap>
+                      {isLightTheme ? 'Modo escuro' : 'Modo branco'}
+                    </button>
+                  ) : null}
                   <button type="button" className={styles.manageLocalBtn} onClick={() => setHideUi(true)} data-stop-tap>
                     Ocultar UI
                   </button>

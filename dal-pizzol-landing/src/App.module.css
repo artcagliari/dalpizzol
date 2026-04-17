@@ -8,6 +8,10 @@
   background: #07090d;
 }
 
+.viewportLight {
+  background: #f4f6f9;
+}
+
 .portraitStage {
   --unit: min(calc(100dvw / 16), calc(100dvh / 9));
   width: calc(var(--unit) * 9);
@@ -16,6 +20,10 @@
   transform-origin: center;
   overflow: hidden;
   background: #07090d;
+}
+
+.portraitStageLight {
+  background: #f4f6f9;
 }
 
 .shell {

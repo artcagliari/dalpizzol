@@ -9,10 +9,12 @@ type Props = {
   onSave: (data: AddLocalImovelInput) => Promise<void>
   initialData?: LocalImovelFormData
   mode?: 'create' | 'edit'
+  themeMode?: 'dark' | 'light'
 }
 
-export function AddImovelModal({ onClose, onSave, initialData, mode = 'create' }: Props) {
+export function AddImovelModal({ onClose, onSave, initialData, mode = 'create', themeMode = 'dark' }: Props) {
   const isEdit = mode === 'edit'
+  const isLightTheme = themeMode === 'light'
   const formId = useId()
   const fileInputId = `${formId}-file-photos`
   const [title, setTitle] = useState(initialData?.title ?? '')
@@ -93,13 +95,13 @@ export function AddImovelModal({ onClose, onSave, initialData, mode = 'create' }
 
   return (
     <div
-      className={styles.backdrop}
+      className={`${styles.backdrop} ${isLightTheme ? styles.backdropLight : ''}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={`${formId}-title`}
       onClick={onClose}
     >
-      <div className={styles.panel} onClick={(e) => e.stopPropagation()} data-stop-tap>
+      <div className={`${styles.panel} ${isLightTheme ? styles.panelLight : ''}`} onClick={(e) => e.stopPropagation()} data-stop-tap>
         <h2 id={`${formId}-title`} className={styles.title}>
           {isEdit ? 'Editar imóvel (neste dispositivo)' : 'Novo imóvel (neste dispositivo)'}
         </h2>
@@ -187,6 +189,9 @@ export function AddImovelModal({ onClose, onSave, initialData, mode = 'create' }
               >
                 <option value="Casa">Casa</option>
                 <option value="Apartamento">Apartamento</option>
+                <option value="Kitnet">Kitnet</option>
+                <option value="Sala Comercial">Sala comercial</option>
+                <option value="Terreno">Terreno</option>
               </select>
             </label>
             <label className={styles.field}>
