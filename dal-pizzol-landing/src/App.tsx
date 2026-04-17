@@ -7,10 +7,60 @@ import styles from './App.module.css'
 
 type ThemeMode = 'dark' | 'light'
 const THEME_STORAGE_KEY = 'dalpizzol-theme-mode'
+const THEME_COOKIE_KEY = 'dalpizzol-theme-mode'
+const THEME_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365
+
+function parseThemeMode(value: string | null | undefined): ThemeMode | null {
+  if (!value) return null
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'light' || normalized === 'white' || normalized === 'branco') return 'light'
+  if (normalized === 'dark' || normalized === 'escuro') return 'dark'
+  return null
+}
+
+function getThemeModeFromUrl(): ThemeMode | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  const fromTheme = parseThemeMode(params.get('theme'))
+  if (fromTheme) return fromTheme
+  return parseThemeMode(params.get('modo'))
+}
+
+function getThemeModeFromCookie(): ThemeMode | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie
+    .split('; ')
+    .find((entry) => entry.startsWith(`${THEME_COOKIE_KEY}=`))
+  if (!match) return null
+  const value = decodeURIComponent(match.split('=').slice(1).join('='))
+  return parseThemeMode(value)
+}
+
+function persistThemeMode(mode: ThemeMode) {
+  if (typeof document !== 'undefined') {
+    document.cookie = `${THEME_COOKIE_KEY}=${encodeURIComponent(mode)}; Max-Age=${THEME_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`
+  }
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, mode)
+  } catch {
+    // Alguns navegadores de TV bloqueiam localStorage; cookie já cobre fallback.
+  }
+}
 
 function getInitialThemeMode(): ThemeMode {
   if (typeof window === 'undefined') return 'dark'
-  return window.localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark'
+  const fromUrl = getThemeModeFromUrl()
+  if (fromUrl) return fromUrl
+  try {
+    const fromStorage = parseThemeMode(window.localStorage.getItem(THEME_STORAGE_KEY))
+    if (fromStorage) return fromStorage
+  } catch {
+    // Ignora e segue para cookie/fallback.
+  }
+  const fromCookie = getThemeModeFromCookie()
+  if (fromCookie) return fromCookie
+  return 'dark'
 }
 
 /**
@@ -26,7 +76,7 @@ function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', themeMode)
-    window.localStorage.setItem(THEME_STORAGE_KEY, themeMode)
+    persistThemeMode(themeMode)
   }, [themeMode])
 
   return (
